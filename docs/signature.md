@@ -192,38 +192,38 @@ import java.security.Signature;
 public class SignatureCreator {
 
     private String algorithm = "SHA1withRSA";  // Parašymo algoritmas
-    private StringBuilder data = new StringBuilder();  // Kaupia duomenis, kurie bus pasirašomi
+    private List<String> dataElements = new ArrayList<>();  // Kaupia duomenis, kurie bus pasirašomi
 
     /**
      * Prideda duomenis prie parašo turinio.
      *
-     * @param dataToAdd Pridedami tekstiniai duomenys
+     * @param element Pridedami tekstiniai duomenys
      */
-    public void addData(String dataToAdd) {
-        data.append(dataToAdd);
+    public void addData(String element) {
+        dataElements.add(element);
     }
 
     /**
      * Sugeneruoja parašą remiantis sukauptais duomenimis.
      *
      * @param privateKey RSA privatus raktas, naudojamas pasirašyti duomenis
-     * @return Parašas kaip baitų masyvas
+     * @return Parašas Base64
      * @throws Exception jei įvyksta klaida pasirašant
      */
     public byte[] sign(PrivateKey privateKey) throws Exception {
+          // Sugeneruojame bendrą teksto eilutę iš visų elementų
+        StringBuilder dataToSign = new StringBuilder();
+        for (String element : dataElements) {
+            dataToSign.append(element);
+        }
+
+        // Inicializuojame parašo objektą
         Signature signature = Signature.getInstance(algorithm);
         signature.initSign(privateKey);
-        signature.update(getBytesToBeSigned());
-        return signature.sign();
-    }
+        signature.update(dataToSign.toString().getBytes(StandardCharsets.UTF_8));
 
-    /**
-     * Konvertuoja sukauptus duomenis į baitus.
-     *
-     * @return Duomenų, kurie bus pasirašyti, baitų masyvas
-     */
-    private byte[] getBytesToBeSigned() {
-        return data.toString().getBytes(StandardCharsets.UTF_8);
+        // Sugeneruojame parašą
+        return signature.sign();
     }
 }
 ```
@@ -240,15 +240,27 @@ SignatureCreator signatureCreator = new SignatureCreator();
 
 2. Pridėkite duomenis pasirašymui
 
-- Metodas addData leidžia pridėti duomenis po vieną dalį. Galite pridėti tiek duomenų eilučių, kiek reikia, klasė jas sujungs į vieną seką.
+- dataElements leidžia pridėti duomenis po vieną dalį. Galite pridėti tiek duomenų eilučių, kiek reikia, klasė jas sujungs į vieną seką.
 
 ```java
-signatureCreator.addData("<clientId>client_id</clientId>");
-signatureCreator.addData("<signerPersonalCode>signer_code</signerPersonalCode>");
-signatureCreator.addData("<responseUrl>http://example.com/app</responseUrl>");
-signatureCreator.addData("<signingType>Signature</signingType>");
-signatureCreator.addData("<fileDigest>0v5NcpPFHEttzbsxm0urXlc5MIE=</fileDigest>");
-signatureCreator.addData("<fileName>pdf.pdf</fileName>");
+ String[] dataElements = {
+                    "<clientId>Test</clientId>",
+                    "<title>title</title>",
+                    "<signerId>signerId</signerId>",
+                    "<individualName>individual</individualName>",
+                    "<position>position</position>",
+                    "<division>division</division>",
+                    "<code>authorCode</code>",
+                    "<name>authorName</name>",
+                    "<email>authorEmail</email>",
+                    "<address>authorAddress</address>",
+                    "<code>recipientCode</code>",
+                    "<name>recipientName</name>",
+                    "<email>recipientEmail</email>",
+                    "<address>recipientAddress</address>",
+                    "<fileDigest>kP/SNZAI2CKYgh0Wshd4xcOa7DY=</fileDigest>",
+                    "<fileName>sample.pdf</fileName>",
+            };
 ```
 
 3. Įkelkite RSA privatų raktą
@@ -289,12 +301,29 @@ public class Main {
             SignatureCreator signatureCreator = new SignatureCreator();
 
             // Pridėkite duomenis, kurie bus pasirašomi
-            signatureCreator.addData("<clientId>client_id</clientId>");
-            signatureCreator.addData("<signerPersonalCode>signer_code</signerPersonalCode>");
-            signatureCreator.addData("<responseUrl>http://example.com/app</responseUrl>");
-            signatureCreator.addData("<signingType>Signature</signingType>");
-            signatureCreator.addData("<fileDigest>0v5NcpPFHEttzbsxm0urXlc5MIE=</fileDigest>");
-            signatureCreator.addData("<fileName>pdf.pdf</fileName>");
+            String[] dataElements = {
+                    "<clientId>Test</clientId>",
+                    "<title>title</title>",
+                    "<signerId>signerId</signerId>",
+                    "<individualName>individual</individualName>",
+                    "<position>position</position>",
+                    "<division>division</division>",
+                    "<code>authorCode</code>",
+                    "<name>authorName</name>",
+                    "<email>authorEmail</email>",
+                    "<address>authorAddress</address>",
+                    "<code>recipientCode</code>",
+                    "<name>recipientName</name>",
+                    "<email>recipientEmail</email>",
+                    "<address>recipientAddress</address>",
+                    "<fileDigest>kP/SNZAI2CKYgh0Wshd4xcOa7DY=</fileDigest>",
+                    "<fileName>dummy.pdf</fileName>",
+            };
+
+              // Pridedame visus duomenų elementus
+            for (String element : dataElements) {
+                signatureCreator.addData(element);
+            }
 
             // Įkelkite savo privatų raktą
             PrivateKey privateKey = loadPrivateKey();
@@ -312,9 +341,39 @@ public class Main {
     }
 
     private static PrivateKey loadPrivateKey() {
-        // Metodas, skirtas įkelti RSA privatų raktą (pakeiskite pagal jūsų rakto įkėlimo logiką)
-        // Pavyzdžiui, naudojant rakto failą ir KeyFactory ir pan.
-        return null;
+       try {
+            String privateKeyPEM = "-----BEGIN PRIVATE KEY-----Jūsų sugeneruotas raktas-----END PRIVATE KEY-----";
+
+            // Pašaliname BEGIN ir END raktų žymas
+            String privateKeyPEMFormatted = privateKeyPEM
+                    .replace("-----BEGIN PRIVATE KEY-----", "")
+                    .replace("-----END PRIVATE KEY-----", "")
+                    .replaceAll("\\s+", "");
+
+            System.out.println("Formatuotas raktas: " + privateKeyPEMFormatted);
+            System.out.println("Rakto ilgis: " + privateKeyPEMFormatted.length());
+
+            try {
+                // Dekuoduojame Base64 užkoduotą eilutę
+                byte[] pkcs8EncodedBytes = Base64.getDecoder().decode(privateKeyPEMFormatted);
+
+                // Sukuriame PKCS8EncodedKeySpec
+                PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(pkcs8EncodedBytes);
+
+                // Sugeneruojame privatų raktą naudojant KeyFactory
+                KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+                return keyFactory.generatePrivate(keySpec);
+
+            } catch (IllegalArgumentException e) {
+                System.err.println("Base64 dekodavimo klaida: " + e.getMessage());
+                System.err.println("Neteisingas Base64 raktas: " + privateKeyPEMFormatted);
+                throw e;
+            }
+        } catch (Exception e) {
+            System.err.println("Klaida įkeliant privatų raktą: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
 }
 ```
@@ -331,11 +390,11 @@ public class Main {
 Kai paleisite šį pavyzdį su savo privačiu raktu ir duomenimis, gausite parašą Base64 formatu:
 
 ```bash
-Sugeneruotas Parašas (Base64): NkzVv5BN4o8apCRhi6J+kJXXBOfMWJDGocniq6eM4errlbFwOOrsW67iRh0hM6scaQ5Lzuf35/c3fgtHHeNPqXzHdQTRDtCBBfNUfHQrKt3gK6UEzfChBtfeO9tFiR80SJJ4trt+kcP197kR+6y8fjHCMcJUIt/NbXaFahf5qkU=
+Sugeneruotas Parašas (Base64): gU4ordhO3/OJEVWGYLMuFgG7Za6URfHnCxBR+A+jkC+MLoFOFwCKxjDwSCg+37/26iheqQq9MTxXsPy+xFhoMsle8J1DrTRFK0zFz2TR2ypb7kVruDgpQJiRbXKeYUrvRHnvr4+WLRkLgGluYHDhVfg/FYBmtvhUCDF7YqKDOi2lDYFWgjOFWhKRFY5PFELnLjZUdjgs3lpfnbQ6+pZ2kcmPXBbmGyh4yyyyTIC+Kd6gttOW/7XtticSlvndYz/W6MuNpgtWxsVglPqLxkBe2KAklRd80UNVgn9mbou+jjU1hyU7OOs3QtG1NraWcgGASppQh/NkdWMPtjhzTQBAwg==
 ```
 
 base64 encode reikšmė perduodama per `signature` užklausos elementą:
 
 ```xml
-<signature>NkzVv5BN4o8apCRhi6J+kJXXBOfMWJDGocniq6eM4errlbFwOOrsW67iRh0hM6scaQ5Lzuf35/c3fgtHHeNPqXzHdQTRDtCBBfNUfHQrKt3gK6UEzfChBtfeO9tFiR80SJJ4trt+kcP197kR+6y8fjHCMcJUIt/NbXaFahf5qkU=</signature>
+<signature>gU4ordhO3/OJEVWGYLMuFgG7Za6URfHnCxBR+A+jkC+MLoFOFwCKxjDwSCg+37/26iheqQq9MTxXsPy+xFhoMsle8J1DrTRFK0zFz2TR2ypb7kVruDgpQJiRbXKeYUrvRHnvr4+WLRkLgGluYHDhVfg/FYBmtvhUCDF7YqKDOi2lDYFWgjOFWhKRFY5PFELnLjZUdjgs3lpfnbQ6+pZ2kcmPXBbmGyh4yyyyTIC+Kd6gttOW/7XtticSlvndYz/W6MuNpgtWxsVglPqLxkBe2KAklRd80UNVgn9mbou+jjU1hyU7OOs3QtG1NraWcgGASppQh/NkdWMPtjhzTQBAwg==</signature>
 ```
