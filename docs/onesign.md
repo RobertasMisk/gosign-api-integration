@@ -18,6 +18,18 @@ nav_order: 1
 - _InitAdoc_, naudojamas ADOC dokumentui suformuoti.
 - _Timestamp_, naudojamas **dėti laiko žymoms** and dokumentų.
 
+<span style="color: Red"> **SVARBU** </span>
+
+Jei nenaudojama `soapRequest` arba panaši priemonė, būtina pridėti HTTP antraštę (Headers) `SOAPAction`. Ši antraštė reikalinga norint užtikrinti, kad SOAP užklausa būtų tinkamai identifikuota serveryje.
+
+**Pavyzdys**
+
+SOAPAction: "http://www.registrucentras.lt/onesignservice/InitAdoc"
+
+![alt text](image.png)
+
+Nepamirškite tinkamai nustatyti `SOAPAction` reikšmės pagal jūsų paslaugos specifikaciją.
+
 ### InitSigning metodas
 
 `InitSigning` metodo struktūrinis duomenų tipas sudarytas iš elementų:
